@@ -1,6 +1,8 @@
 const ob = require('./modules/subscribe/index');
 require('./modules/algorithm/index');
 require('./modules/regexp/index');
+require('./modules/event-loop/index');
+require('./modules/inherit/index');
 
 // 发布订阅 
 // function print1() {

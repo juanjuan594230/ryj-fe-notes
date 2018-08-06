@@ -1,6 +1,7 @@
 const bs = require('./binary-search');
 const LinkList = require('./link-list');
 const BinaryTree = require('./tree');
+require('./array');
 
 // bianrySearch test demo
 /* const arr1 = [2,9,17,23,36,76,99];
