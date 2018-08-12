@@ -1,7 +1,13 @@
 const bs = require('./binary-search');
 const LinkList = require('./link-list');
 const BinaryTree = require('./tree');
+// require('./sort');
+// require('./stack');
+// require('./queue');
 require('./array');
+// require('./string');
+// require('./recursion');
+// require('./other');
 
 // bianrySearch test demo
 /* const arr1 = [2,9,17,23,36,76,99];
@@ -34,16 +40,22 @@ console.log(index2);  // -1
 console.log(index3);  // -1
 console.log(index4);  // 1 */
 
-// 链表反转
+// 链表
 /* const c = new LinkList('c');
 const b = new LinkList('b', c);
-const a = new LinkList('a', b);
+const a = new LinkList('a', b); */
 
-const headReverse = a.reverse();
+// 链表反转
+/* const headReverse = a.reverse();
 console.log(headReverse); */
 
+// 向链表的尾部插入一个节点
+/* const newNode = new LinkList('d');
+a.push(newNode); */
+
+
 /* 二叉树相关算法 */
-const l = new BinaryTree(12, null, null);
+/* const l = new BinaryTree(12, null, null);
 const k = new BinaryTree(11, null, null);
 const j = new BinaryTree(10, null, null);
 const i = new BinaryTree(9, l);
@@ -54,7 +66,7 @@ const e = new BinaryTree(5, null, j);
 const d = new BinaryTree(4, h, i);
 const c = new BinaryTree(3, f, g);
 const b = new BinaryTree(2, d, e);
-const a = new BinaryTree(1, b, c);
+const a = new BinaryTree(1, b, c); */
 
 // a.preOrder();      // 1, 2, 4, 8, 9, 12, 5, 10, 3, 6, 11, 7
 // a.centerOrder();   // 8, 4, 12, 9, 2, 5, 10, 1, 6, 11, 3, 7

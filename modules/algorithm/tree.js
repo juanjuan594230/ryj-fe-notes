@@ -46,7 +46,7 @@ class BinaryTree {
         }
         console.log(root.val);
     }
-    // 层遍历
+    // 层遍历··
     layerOrder() {
         const root = this;
         const array = [];
@@ -124,6 +124,38 @@ class BinaryTree {
         return root;
     }
 
+}
+
+/* 
+    输入两棵树，判断B是否是A的子结构
+*/
+function hasSubtree(root1, root2) {
+    const result = false;
+    if (!root1 && !root2) {
+        if (root1.val === root2.val) {
+            result = doesTreeHaveTree2(root1, root2);
+        }
+        if (!result) {
+            result = hasSubtree(root1.left, root2);
+        }
+        if (!result) {
+            result = hasSubtree(root1.right, root2);
+        }
+    }
+    return result;
+}
+
+function doesTreeHaveTree2(root1, root2) {
+    if (!root2) {
+        return true;
+    }
+    if (!root1) {
+        return false;
+    }
+    if (root1.val !== root2.val) {
+        return false;
+    }
+    return doesTreeHaveTree2(root1.left, root2.left) && doesTreeHaveTree2(root1.right, root2.right);
 }
 
 module.exports = BinaryTree;
