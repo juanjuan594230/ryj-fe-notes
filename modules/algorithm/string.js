@@ -17,4 +17,9 @@ function ReplaceBlank(str) {
     return _arr.join('');
 }
 
-console.log(ReplaceBlank(str1));
+// console.log(ReplaceBlank(str1));
+
+/* 
+    给定一个英文句子，每个单词之间由一个或者多个空格隔开，请反转句子中单词顺序（包含空格），但不翻转单词内的字符。
+    eg: www google com   ->   com google www
+*/

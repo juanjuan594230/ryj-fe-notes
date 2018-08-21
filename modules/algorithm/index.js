@@ -4,7 +4,7 @@ const BinaryTree = require('./tree');
 // require('./sort');
 // require('./stack');
 // require('./queue');
-require('./array');
+// require('./array');
 // require('./string');
 // require('./recursion');
 // require('./other');

@@ -198,5 +198,32 @@ function merge(phead1, phead2) {
     return mergeHead;
 }
 
+/* 
+    判断链表是否形成环
+    思路1: 建立一个set数据类型的变量，遍历一个节点，先去判断set结构中是否存在，不存在，添加；存在，则证明单链表中有环
+    思路2: 两个指针，都指向链表的头节点，指针1一次移动一步，指针2一次移动2步，当两个指针指向同一节点时，则证明有环
+    实现：以思路2的方式实现
+*/
+const D = new LinkList('d');
+const C = new LinkList('c', D);
+const B = new LinkList('b', C);
+const A = new LinkList('a', B);
+D.next = C;
+function hasCircle(phead) {
+    if (!phead || !phead.next) {
+        return false;
+    }
+    let p1 = p2 = phead;
+    while(p1 && p2) {
+        p1 = p1.next;
+        p2 = p2.next.next;
+        if (p1 === p2) {
+            return true;
+        }
+    }
+    return false;
+}
+console.log(hasCircle(A));
+
 
 module.exports = LinkList;
