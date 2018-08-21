@@ -208,7 +208,7 @@ const D = new LinkList('d');
 const C = new LinkList('c', D);
 const B = new LinkList('b', C);
 const A = new LinkList('a', B);
-D.next = C;
+D.next = B;
 function hasCircle(phead) {
     if (!phead || !phead.next) {
         return false;
@@ -223,7 +223,47 @@ function hasCircle(phead) {
     }
     return false;
 }
-console.log(hasCircle(A));
+// console.log(hasCircle(A));
+
+/* 
+    如果链表中存在环，请找出环的入口点
+    思路：两个指针p1&p2, 假设环中节点的树木为n，则p1先走n步，之后两个指针步调一致，指向同一元素，即为环的入口点
+    那么，如何获得环中节点的数目呢？
+    利用判断是否有环的思想，当链表中存在环时，两个指针相遇的节点一个在环中，当再一次走到该节点时，就可以得到环中的个数了
+*/
+function circleEntry(phead) {
+    // 不存在环时
+    if (!hasCircle(phead)) {
+        return null;
+    }
+    let nodeNum = 1;
+    let p1 = p2 = phead;
+    while (p1 && p2) {
+        p1 = p1.next;
+        p2 = p2.next.next;
+        if (p1 === p2) {
+            break;
+        }
+    }
+    while (p1.next !== p2) {
+        p1 = p1.next;
+        nodeNum++;
+        if (p1 === p2) {
+            break;
+        }
+    }
+    p1 = p2 = phead;
+    while (nodeNum > 0) {
+        p1 = p1.next;
+        nodeNum--;
+    }
+    while (p1 !== p2) {
+        p1 = p1.next;
+        p2 = p2.next;
+    }
+    return p1;
+}
+console.log(circleEntry(A));
 
 
 module.exports = LinkList;
