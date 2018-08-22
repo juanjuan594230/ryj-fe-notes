@@ -204,11 +204,11 @@ function merge(phead1, phead2) {
     思路2: 两个指针，都指向链表的头节点，指针1一次移动一步，指针2一次移动2步，当两个指针指向同一节点时，则证明有环
     实现：以思路2的方式实现
 */
-const D = new LinkList('d');
+/* const D = new LinkList('d');
 const C = new LinkList('c', D);
 const B = new LinkList('b', C);
 const A = new LinkList('a', B);
-D.next = B;
+D.next = B; */
 function hasCircle(phead) {
     if (!phead || !phead.next) {
         return false;
@@ -263,7 +263,87 @@ function circleEntry(phead) {
     }
     return p1;
 }
-console.log(circleEntry(A));
+// console.log(circleEntry(A));
 
+/* 
+    求两个单链表的公共节点
+    思路1: 利用栈结构，将两个链表中的节点依次存入栈中，依次从栈顶弹出，最后一个相同的元素即为第一个公共节点
+    思路2: 先求出两个链表的长度差n，让较大的链表的指针先走n步，最后两个指针一起走，指向同一元素即为第一个公共节点
+*/
+const D = new LinkList('d');
+const C = new LinkList('c', D);
+const B = new LinkList('b', C);
+const A = new LinkList('a', B);
+const E = new LinkList('e');
+// const E = new LinkList('e', C);
+// 思路1
+function commonNode1(phead1, phead2) {
+    if (!phead1 || !phead2) {
+        return null;
+    }
+    const _arr1 = [];
+    const _arr2 = [];
+    let p1 = phead1,
+        p2 = phead2,
+        commonNode = null;
+    while (p1) {
+        _arr1.push(p1);
+        p1 = p1.next;
+    }
+    while (p2) {
+        _arr2.push(p2);
+        p2 = p2.next;
+    }
+    while (_arr1.length > 0 && _arr2.length > 0) {
+        const tailNode1 = _arr1.pop();
+        const tailNode2 = _arr2.pop();
+        if (tailNode1 === tailNode2) {
+            commonNode = tailNode1;
+        } else {
+            break;
+        }
+    }
+    return commonNode;
+}
+// console.log(commonNode1(A, E));
+
+// 思路2
+function size(phead) {
+    let length = 0;
+    if (!phead) {
+        return length;
+    }
+    let p1 = phead;
+    while (p1) {
+        length++;
+        p1 = p1.next;
+    }
+    return length;
+}
+
+function commonNode2(phead1, phead2) {
+    if (!phead2 || !phead2) {
+        return null;
+    }
+    const len1 = size(phead1);
+    const len2 = size(phead2);
+    let step = len1 > len2 ? len1 - len2 : len2 - len1;
+    let p1 = phead1,
+        p2 = phead2;
+    while (step > 0) {
+        p1 = p1.next;
+        step--;
+    }
+    while (p1 && p2) {
+        if (p1 === p2) {
+            return p1;
+        }
+        p1 = p1.next;
+        p2 = p2.next;
+    }
+    return null;
+}
+
+console.log(commonNode2(A, E));
 
 module.exports = LinkList;
