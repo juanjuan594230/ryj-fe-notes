@@ -3,6 +3,7 @@ require('./modules/algorithm/index');
 require('./modules/regexp/index');
 require('./modules/event-loop/index');
 require('./modules/inherit/index');
+require('./modules/cookie/index');
 
 // 发布订阅 
 // function print1() {

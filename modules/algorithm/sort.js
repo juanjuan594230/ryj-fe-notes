@@ -37,4 +37,53 @@ function quickSort(arr, start, end) {
     quickSort(arr, index + 1, end);
 }
 
-quickSort(arr, 0, arr.length-1);
+// quickSort(arr, 0, arr.length-1);
+
+/* 
+    冒泡排序
+*/
+
+function bubbleSort(arr) {
+    if (!arr || arr.length <= 1) {
+        return;
+    }
+    for (let i = 0, len = arr.length; i < len; i++) {
+        for (let j = 0; j < len - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                const _temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = _temp;
+            }
+        }
+    }
+}
+
+/* 
+    如果某一轮没有交换的话，就证明数组已经是有序的了 
+*/
+function bubbleSortPlus1(arr) {
+    if (!arr || arr.length <= 1) {
+        return;
+    }
+    let sortBorder = arr.length - 1,
+        lastExchangeIndex = 0;
+    for (let i = 0, len = arr.length; i < len; i++) {
+        let isSwap = false;
+        for (let j = 0; j < sortBorder; j++) {
+            if (arr[j] > arr[j + 1]) {
+                const _temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = _temp;
+                isSwap = true;
+                lastExchangeIndex = j;
+            }
+        }
+        sortBorder = lastExchangeIndex;
+        if (!isSwap) {
+            break;
+        }
+    }
+}
+
+bubbleSort(arr);
+console.log(arr);

@@ -1,11 +1,11 @@
 const bs = require('./binary-search');
-const LinkList = require('./link-list');
+// const LinkList = require('./link-list');
 const BinaryTree = require('./tree');
 // require('./sort');
 // require('./stack');
 // require('./queue');
 // require('./array');
-// require('./string');
+require('./string');
 // require('./recursion');
 // require('./other');
 

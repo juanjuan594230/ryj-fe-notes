@@ -57,7 +57,8 @@ console.log(min(arr2)); */
 /* 
   调整数组，使得奇数位于偶数签名
   移动指针之后，start  < end 的判断非常重要
-  扩展：将奇数位于偶数后面 -》 将负数位于正数前面，考虑传递一个比较的函数进去，解耦
+  扩展：将奇数位于偶数前面 -》 将负数位于正数前面，考虑传递一个比较的函数进去，解耦
+  扩展：将奇数位于偶数前面，奇数与偶数的相对位置不变
 */
 const arr3 = [1,2,3,4,5,6,7,8];
 function reorderOddEven(arr) {
@@ -80,5 +81,31 @@ function reorderOddEven(arr) {
     }
   }
 }
-// reorderOddEven(arr3);
-// console.log(arr3);
+
+function reorderOddEven1(arr) {
+  if (!arr || arr.length <= 1) {
+    return;
+  }
+  const _evenArr = [];
+  const len = arr.length;
+  let oddIndex = 0;
+  for (let i = 0; i < len; i++) {
+    // 偶数
+    if (arr[i] % 2 === 0) {
+      _evenArr.push(arr[i]);
+    } else {
+      if (oddIndex < i) {
+        arr[oddIndex] = arr[i];
+      }
+      oddIndex++;
+    }
+  }
+  if (_evenArr.length > 0) {
+    for (let i = 0; i < _evenArr.length; i++) {
+      arr[oddIndex] = _evenArr[i];
+      oddIndex++;
+    }
+  }
+}
+reorderOddEven1(arr3);
+console.log(arr3);

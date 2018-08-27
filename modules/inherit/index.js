@@ -152,3 +152,22 @@ Cat.prototype.sayName = function() {
   console.log(this.name);
 } */
 
+
+class Point {
+  constructor (x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+class ColorPonit extends Point {
+  constructor (x, y, color) {
+    // 不调用super，子类得不到this对象
+    super(x, y);
+    this.color = color;
+  }
+  toString () {
+    return `${this.color} ${super.toString()}`
+  }
+}
+
