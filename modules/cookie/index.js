@@ -36,7 +36,7 @@ const cookieUtil = {
   }
 }
 
-console.log(cookieUtil.get(cookie, '_gid'));
-cookieUtil.set('name', 'renyujuan', {
-  secure: true
-});
+// console.log(cookieUtil.get(cookie, '_gid'));
+// cookieUtil.set('name', 'renyujuan', {
+//   secure: true
+// });

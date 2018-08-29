@@ -4,6 +4,7 @@ require('./modules/regexp/index');
 require('./modules/event-loop/index');
 require('./modules/inherit/index');
 require('./modules/cookie/index');
+require('./modules/closure/index');
 
 // 发布订阅 
 // function print1() {
