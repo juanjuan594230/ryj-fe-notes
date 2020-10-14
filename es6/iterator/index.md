@@ -53,7 +53,7 @@ how? `function *createIterator()`
 `*` & `yield`关键字
 
 - `*`表明了方法是一个generator，位于`function`关键字后面
-- `yield`表明了，iterator调用next之后，返回的value值；生成器函数会在每个yield语句之后，停止执行。
+- `yield`表明了，iterator调用next之后，返回的value值；生成器函数会在每个yield语句之后，停止执行。继续执行的条件，调用next方法
 
 ```javascript
 function *createIterator() {
@@ -110,7 +110,7 @@ const obj = {
 ## iterables and for-of
 
 - 一个对象具有`Symbol.iterator`属性，那该对象就是可迭代的
-- `Symbol.iterator`本身是一个函数，返回给定对象的迭代器
+- `Symbol.iterator`本身是一个函数（可以理解为是generator函数），返回给定对象的迭代器
 - `null` `undefined`是不可迭代的。使用`for-of`会报错
 
 
@@ -124,9 +124,13 @@ for(let num of nums) {
 ```
 
 1 `for-of` loop call `Symbol.iterator`方法获取nums数组的迭代器对象。
+
 2 `iterator.next()` called，并返回obj = `{value: 1, done: false}`
+
 3 `num = obj.value`
+
 4 循环2.3步骤，直至`iterator.next()` called之后，返回的对象done属性为`true`
+
 5 循环结束
 
 ### 获取默认的iterator对象
@@ -206,4 +210,31 @@ const arr2 = [1,2,...arr, ...arr1];
 
 console.log([...'hello']); // ['h','e','l','l','o']
 ```
+
+## 先进的迭代器给功能
+
+### 参数传递
+
+可以通过next方法或者在生成器中使用yield语句向迭代器传递参数。
+
+**使用next传递的参数，在生成器函数中会成为yield语句的值？？？**
+
+```javascript
+function *createIterator() {
+    let first = yield 1;
+    let second = yield first + 2;
+    yield second + 3;
+}
+const iterator = createIterator();
+console.log(iterator.next()); // { value: 1, done: false} 通过yield语句向iterator传值
+console.log(iteratot.next(4)); // { value: 6, done: false }
+console.log(iteratot.next(5)); // { value: 8, done: false }
+console.log(iteratot.next(4)); // { value: undefined, done: true }
+```
+
+首次调用next方法比较特别，因为通过next传递的参数会丢失。???
+
+Since arguments passed to next() become the values returned by yield, an argument from the first call to next() could only replace the first yield statement in the generator function if it could be accessed before that yield statement. That’s not possible, so there’s no reason to pass an argument the first time next() is called.
+
+第二次调用next，传递参数为4；4在生成器函数中被作为yield语句的返回值，赋值给first变量。
 

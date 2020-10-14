@@ -1,10 +1,21 @@
 # block bindings
 
+大纲：
+
+1、var声明的变量会提升到全局或者函数作用域的顶部
+2、let、const引入了块级作用域的概念，在作用域内没有变量声明提升；相同作用域存在的变量不能重复声明；存在暂时性死区
+3、const声明时需要初始化，且不能重新赋值（不能修改绑定）；
+
+
+## `var`声明与提升
+
+`var`关键字声明的变量会被提升到函数或者全局作用域的顶部
+
 ## block-level Declarations
 
 块级作用域(词法作用域 lexical scope) function or {}
 
-`let` & `const`用来定义变量，没有变量提升，只在当前的块级作用域有效。
+`let` & `const`用来定义变量，没有变量提升，只在当前的块级作用域有效；并且在变量定义时变量才可用，因此存在暂时性死区。
 
 * `const`声明的变量值不能改变，且必须在声明变量的同时初始化变量
 
@@ -12,7 +23,7 @@
 const name; // syntax error: missing initialization
 ```
 
-* `const`防止修改绑定，而非绑定的值(类似人与身份证的关系，身份证对应的人不能改变，但这个人的姓名、家庭住址等信息可以改变)
+* `const`防止修改绑定，而非绑定的值(类似人与身份证的关系，身份证对应的人不能改变，但这个人的姓名、家庭住址等信息可以改变)*
 
 ```javascript
 const name = 'renyujuan';
@@ -25,9 +36,13 @@ renyujuan.name = 'ryj'
 renyujuan = {} // TypeError: assignment to constant variable
 ```
 
-* 暂时性死区(这个术语在ECMAScript中没有明确定义，一般用来描述`let` `const`定义的变量在声明语句执行之前是不可以被访问的。)
+### 暂时性死区
 
-*`var`定义的变量，其声明会被提升到函数或全局作用域的顶部；`let` `const`则会存在暂时性死区*
+这个术语在ECMAScript中没有明确定义，一般用来描述`let` `const`定义的变量在声明语句执行之前是不可以被访问的。
+
+**`var`定义的变量，其声明会被提升到函数或全局作用域的顶部；`let` `const`则会存在暂时性死区**
+
+**在DTZ时，`typeof`操作符也不是安全的。**
 
 eg:
 ```javascript
@@ -36,6 +51,11 @@ if (condition) {
     console.log(value); // ReferenceError TDZ 暂时性死区
     const value = 'XXX';
 }
+```
+
+eg:深入理解TDZ
+```javascript
+
 ```
 
 * `let` `const` declaration in loops
