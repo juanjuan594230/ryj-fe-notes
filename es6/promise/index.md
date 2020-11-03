@@ -274,5 +274,135 @@ window.addEventListener('rejectionhandled', (event) => {
 
 ### 链式调用
 
+每次调用then或者catch都会返回一个新的promise对象。
 
+#### catching errors
+
+Promise chaining allows you to catch errors that may occur in a fulfillment or rejection handler from a previous promise.
+
+==Always have a rejection handler at the end of a promise chain to ensure that you can properly handle any errors that may occur.==
+
+#### promise链式调用中返回值
+
+```javascript
+const p1 = new Promise((resolve, reject) => {
+    resolve(42);
+});
+// p1.then()返回的值将会传入它返回的promise的fulfillment handler。
+p1.then((data) => {
+    return data + 1;
+    // return new Promise((resolve, reject) => { resolve(data + 1)}) 应该是等价的。
+}).then((data) => {
+    console.log('data', data); // 43
+});
+
+// rejection handler 返回的值也可以传递
+const p2 = new Promise((resolve, reject) => {
+    reject(42);
+});
+p2.catch((data) => {
+    return data + 1;
+}).then((data) => {
+    console.log('data', data); // 43
+});
+```
+
+#### promise链式调用中返回promise对象
+
+```javascript
+let p1 = new Promise(function(resolve, reject) {
+    resolve(42);
+});
+
+let p2 = new Promise(function(resolve, reject) {
+    resolve(43);
+});
+
+p1.then(function(value) {
+    // first fulfillment handler
+    console.log(value);     // 42
+    return p2;
+}).then(function(value) {
+    // second fulfillment handler
+    console.log(value);     // 43
+});
+
+// 这种模式在，当你想要前一个promise settled后，再执行另一个promise的executor
+let p1 = new Promise(function(resolve, reject) {
+    resolve(42);
+});
+
+p1.then(function(value) {
+    console.log(value);     // 42
+
+    // create a new promise
+    let p2 = new Promise(function(resolve, reject) {
+        resolve(43);
+    });
+
+    return p2
+}).then(function(value) {
+    console.log(value);     // 43
+});
+```
+
+### 多个promise
+
+更多的时候，下一步的操作执行依赖于多个promise对象的执行情况。
+
+ES6提供了两种方法去取监控多个promise对象的执行情况，Promise.all()和Promise.race()
+
+#### Promise.all()
+
+参数 - 接受一个由promise对象组成的可迭代结构
+返回值 - 返回一个promise
+    当迭代器中的每一个promise对象都fulfilled，这个promise会fulfilled，。
+    当迭代器中有任意一个promise rejected。返回的promise立即变为rejected状态，不会再等待其他promise的状态。
+
+```javascript
+// fulfilled
+let p1 = new Promise(function(resolve, reject) {
+    resolve(42);
+});
+
+let p2 = new Promise(function(resolve, reject) {
+    resolve(43);
+});
+
+let p3 = new Promise(function(resolve, reject) {
+    resolve(44);
+});
+
+let p4 = Promise.all([p1, p2, p3]);
+p4.then((value) => {
+    console.log(value); // [42, 43, 44]
+});
+
+// rejected
+let p1 = new Promise(function(resolve, reject) {
+    resolve(42);
+});
+
+let p2 = new Promise(function(resolve, reject) {
+    reject(43); // 立即停止
+});
+
+let p3 = new Promise(function(resolve, reject) {
+    resolve(44);
+});
+
+let p4 = Promise.all([p1, p2, p3]);
+
+p4.catch(function(value) {
+    console.log(Array.isArray(value))   // false
+    console.log(value);                 // 43
+});
+```
+
+#### Promise.race()
+
+参数 - 接受一个由promise对象组成的可迭代结构
+返回值 - 返回一个promise
+    当迭代器中有任意一个promise率先 rejected, 则返回的promise状态变成rejected
+    当迭代器中有任意一个promise率先 fulfilled, 则返回的promise状态变成fulfilled
 

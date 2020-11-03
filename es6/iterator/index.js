@@ -168,41 +168,74 @@
 //     }
 // }
 
-let fs = require("fs");
+// let fs = require("fs");
 
-function readFile(filename) {
-    return function(callback) {
-        fs.readFile(filename, callback);
-    };
+// function readFile(filename) {
+//     return function(callback) {
+//         fs.readFile(filename, callback);
+//     };
+// }
+
+// function asyncRun(generator) {
+//     const task = generator();
+//     let result = task.next();
+//     console.log('result', result.value);
+//     function step() {
+//         if (result.done) {
+//             return;
+//         }
+//         if (typeof result.value === 'function') {
+//             result.value((error, data) => {
+//                 if (error) {
+//                     result = task.throw(error);
+//                     return;
+//                 }
+//                 result = task.next(data);
+//                 step();
+//             })
+//         } else {
+//             result = task.next(result.value);
+//             step();
+//         }
+//     }
+//     step();
+// }
+
+// asyncRun(function *() {
+//     let content = yield readFile('index.js');
+//     console.log('content', content);
+// });
+
+
+// const iterableObj = {
+//     [Symbol.iterator]() {
+//         let step = 0;
+//         return {
+//             next() {
+//                 step++;
+//                 if (step === 1) {
+//                     return { value: 'This', done: false };
+//                 } else if (step === 2) {
+//                     return { value: 'is', done: false };
+//                 } else if (step === 3) {
+//                     return { value: 'iterable', done: false};
+//                 }
+//                 return { value: undefined, done: true };
+//             }
+//         }
+//     }
+// }
+// for (let val of iterableObj) {
+//     console.log(val);
+// }
+
+function * createIterator() {
+    yield 'This';
+    yield 'is';
+    yield 'iterable'
 }
 
-function asyncRun(generator) {
-    const task = generator();
-    let result = task.next();
-    console.log('result', result.value);
-    function step() {
-        if (result.done) {
-            return;
-        }
-        if (typeof result.value === 'function') {
-            result.value((error, data) => {
-                if (error) {
-                    result = task.throw(error);
-                    return;
-                }
-                result = task.next(data);
-                step();
-            })
-        } else {
-            result = task.next(result.value);
-            step();
-        }
-    }
-    step();
+for(let value of createIterator()) {
+    console.log(value);
 }
-
-asyncRun(function *() {
-    let content = yield readFile('index.js');
-    console.log('content', content);
-});
 
