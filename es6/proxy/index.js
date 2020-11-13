@@ -336,23 +336,37 @@
 
 // 可调用构造函数
 
-class Person {
-    // 默认必须使用new操作符调用
-    constructor(name) {
-        this.name = name;
-    }
-}
+// class Person {
+//     // 默认必须使用new操作符调用
+//     constructor(name) {
+//         this.name = name;
+//     }
+// }
 
-// Person('AAA'); // TypeError: Class constructor Person cannot be invoked without 'new'
+// // Person('AAA'); // TypeError: Class constructor Person cannot be invoked without 'new'
 
-const PersonProxy = new Proxy(Person, {
-    apply(trapTarget, thisArg, argumentList) {
-        return new trapTarget(...argumentList);
-        // return Reflect.construct(trapTarget, argumentList);
-    }
-})
+// const PersonProxy = new Proxy(Person, {
+//     apply(trapTarget, thisArg, argumentList) {
+//         return new trapTarget(...argumentList);
+//         // return Reflect.construct(trapTarget, argumentList);
+//     }
+// })
 
-const instance = PersonProxy('AAA');
-console.log(instance.name); // AAA
+// const instance = PersonProxy('AAA');
+// console.log(instance.name); // AAA
 
-Person('BBBB'); // error again Creating callable class constructors is something that is only possible using proxies.
+// Person('BBBB'); // error again Creating callable class constructors is something that is only possible using proxies.
+
+
+// 可撤销的proxy
+
+// const target = {
+//     name: "target"
+// };
+
+// // revocableProxy包含两个属性，proxy & revoke proxy为代理对象，revoke 是一个fn，调用之后可以解绑
+// // const revocableProxy = Proxy.revocable(target, {});
+// const { proxy, revoke } = Proxy.revocable(target, {});
+// console.log(proxy.name); // target
+// revoke();
+// console.log(proxy.name); //
