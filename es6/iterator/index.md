@@ -409,7 +409,7 @@ iterator.next(); // { value: undefined, done: true }
 
 ==`for-of`和扩展运算符判断迭代完成的依据是done是否为true==
 
-### 委派生成器 
+### 委派生成器
 
 ```javascript
 function *createNumsIterator() {
@@ -523,7 +523,7 @@ function readFile(filename) {
 }
 
 function asyncRun(generator) {
-    const task = generator();
+    const task = generator(); // iterator
     // result.value即为调用readFile()返回的fn(callback) {fs.readFile(filename, callback)}
     let result = task.next();
     function step() {

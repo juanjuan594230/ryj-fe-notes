@@ -143,7 +143,7 @@ const obj = {
 
 Promise.resolve() and promise.reject()提供了将non-promise转换成正式promise的能力。
 
-Promise.resolve() and promise.reject()接受non-promise thenables as arguments. 当传入一个非peomise的thenable对象时，Promise.resolve() and promise.reject()将会创建一个新的promise对象，然后在then函数之后调用它
+Promise.resolve() and promise.reject()接受non-promise thenables as arguments. 当传入一个非promise的thenable对象时，Promise.resolve() and promise.reject()将会创建一个新的promise对象，然后在then函数之后调用它
 
 ```javascript
 const obj = {

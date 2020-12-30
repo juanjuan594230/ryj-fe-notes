@@ -6,7 +6,7 @@ require('./modules/inherit/index');
 require('./modules/cookie/index');
 require('./modules/closure/index');
 
-// 发布订阅 
+// 发布订阅
 // function print1() {
 //     console.log(11111)
 // }
