@@ -510,6 +510,8 @@ function bindGuard(guard:NavigationGuard, instance: ?_Vue) {
 
 #### class Matcher
 
+
+
 ## Component
 
 ### View
