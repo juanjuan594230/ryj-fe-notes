@@ -51,7 +51,7 @@ HTML5提供了操纵浏览器会话记录的API `pushState` `replaceState`
 
 ## Vue-Router
 
-![](../images/vue-router.png)
+![](../images/router/vue-router.png)
 *vue router 整体架构*
 
 ### 行为层
@@ -254,9 +254,48 @@ class History {
         };
 
         runQueue(queue, iterator, () => {
-            // ...
+            // step1. activated component call beforeRouteEnter
+            const enterGuards = extractEnterGuards(activated, postEnterCbs, isValid)
+            // step. queue = [activated beforeRouteEnter, 全局的beforeResolve queue]
+            const queue = enterGuards.concat(this.router.resolveHooks);
+            // 依次执行queue中的beforeResolve hook
+            runQueue(queue, iterator, () => {
+                // ...
+                onComplete(route); // queue execute done, call onComplete<transitionTo call confirmTransition param>
+                // 调用beforeRouterEnter中传给next的回调函数，创建好的组件实例会作为回调函数的参数传入？？？
+                if (this.router.app) {
+                    this.router.app.$nextTick(() => {
+                        postEnterCbs.forEach(cb => {
+                            cb();
+                        })
+                    });
+                }
+            });
         })
     }
+
+    // updateRoute
+    updateRoute(route) {
+        this.current = route;
+        this.cb && this.cb(route); // this.router.app._route = route;
+    }
+
+    // html5 history ensureURL 实现 update history session
+    ensureURL (push?: boolean) {
+        if (getLocation(this.base) !== this.current.fullPath) {
+            const current = cleanPath(this.base + this.current.fullPath)
+            push ? pushState(current) : replaceState(current)
+        }
+    }
+
+    // hash history ensureURL 实现 update history session
+    ensureURL (push?: boolean) {
+        const current = this.current.fullPath
+        if (getHash() !== current) {
+            push ? pushHash(current) : replaceHash(current)
+        }
+    }
+
 }
 
 // execute queue && 执行完成之后，调用cb
@@ -279,10 +318,203 @@ function runQueue(queue:Array<?NavigationGuard>, fn, cb) {
     }
     step(0);
 }
+
+// confirmTransition onComplete
+function onComplete() {
+    const prev = this.current;
+    // 更新导航
+    this.updateRoute(route)
+    onComplete && onComplete(route) // transitionTo onComplete param
+    this.ensureURL() // pushState/replaceState/window.location.hash更改会话历史
+    // 调用全局的afterEach hooks
+    this.router.afterHooks.forEach(hook => {
+        hook && hook(route, prev)
+    })
+
+    // fire ready cbs once
+    if (!this.ready) {
+        this.ready = true
+        this.readyCbs.forEach(cb => {
+        cb(route)
+        })
+    }
+}
+```
+
+**导航守卫**
+
+导航守卫主要分为了三大类
+
+- 全局导航守卫 `beforeEach` `beforeResolve` `afterEach`
+- 路由独享守卫 `beforeEnter`
+- 组件内守卫 `beforeRouteEnter` `beforeRouteUpdate` `beforeRouteLeave`
+
+![](../images/router/vue-router-guard.png)
+
+主要分析confirmTransition中导航的解析流程
+
+```javascript
+const queue = [].concat(
+    // step1 获取失活 routeRecords 中的 beforeRouteLeave hooks 组件内守卫 定义在组件内部
+    // 深入到每一个deactivated routeRecord 的components 中的每一个component<组件中可能引用了其他的组件> 中寻找 beforeRouteLeave hook，绑定对应的Vue instance 到 guard；最后返回由这些 guard 组成的数组。
+    extractLeaveGuards(deactivated);
+
+    // step2 全局的beforeHooks
+    this.router.beforeHooks;
+
+    // step3 获取可复用 routeRecords 中的beforeRouteUpdate hooks 组件内守卫，定义在组件内部
+    // 深入到每一个updated routeRecord 的components 中的每一个component 中寻找 beforeRouteUpdate hook，绑定对应的Vue instance 到 guard；最后返回由这些 guard 组成的数组。
+    extractUpdateHooks(updated);
+
+    // step4 activated routeRecord 中的 beforeEnter 路由独享守卫
+    activated.map(m => m.beforeEnter);
+
+    // step5 async component return fn
+    resolveAsyncComponents(activated);
+);
+
+// 执行queue中的guard 第三个参数为queue中的guard执行完成之后，调用的fn
+runQueue(queue, iterator, () => {
+    // ...
+    // step6 提取被激活组件 beforeRouteEnter 组件内守卫 定义在组件内部
+    // postEnterCbs中存放了beforeRouteEnter next方法传入的回调，并在导航确认执行，遍历postEnterCbs，执行该回调函数。
+    // 执行该guard时，组件实例还不存在。如需访问，需要将cb传入到next中，第一个参数为vm实例
+    const enterGuards = extractEnterGuards(activated, postEnterCbs, isValid);
+
+    // step7 提取全局解析守卫 beforeResolve
+    const resolveHooks = this.router.resolveHooks;
+
+    const queue = [].concat(enterGuards, resolveHooks); // queue 中存放了 beforeRouteEnter hooks & beforeResolve Hooks
+
+    // 依次执行queue中的guard
+    runQueue(queue, iterator, () => {
+        onComplete(route); // confirmTransition onComplete 完成导航更新 step8 执行全局的afterEach hooks step9. 触发DOM更新
+        // step10 调用beforeRouteEnter 中传递给next的cb，创建的组件实例会作为参数传入
+        postEnterCbs.forEach(cb => {
+            cb();
+        })
+    })
+
+
+
+})
+
+// step1 return array of function
+function extractLeaveGuards(deactivated:Array<RouteRecord>) :Array<?Function> {
+    return extractGuards(deactivated, 'beforeRouteLeave', bindGuard, true);
+}
+
+// step6
+function extractEnterGuards(activated, cbs, isValid) {
+    return extractGuards(
+        activated,
+        'beforeRouteEnter',
+        (guard, _, match, key) => {
+            return bindEnterGuard(guard, match, key, cbs, isValid)
+        } // 与extractLeaveGuards不同之处。extractLeaveGuards返回绑定了this(Vue instance)的guard fn列表 ；extractEnterGuards 返回了一个fn列表。
+    )
+}
+
+// extractEnterGuards 返回的fn 列表 单个fn例子。执行导航守卫，等于在执行routeEnterGuard，也意味着在执行guard(to, from , cb);
+function bindEnterGuard(guard, match, key, cbs, isValid) {
+    return function routeEnterGuard(to, from, next) {
+        return guard(to, from, cb => {
+            if (typeof cb === 'function') {
+                cbs.push(() => {
+                // #750
+                // if a router-view is wrapped with an out-in transition,
+                // the instance may not have been registered at this time.
+                // we will need to poll for registration until current route
+                // is no longer valid.
+                    poll(cb, match.instances, key, isValid)
+                })
+            }
+            next(cb)
+        })
+    }
+
+    // use guard = (to, from, _next) { _next((vm) => { // vm instance })}  _next区分 routeEnterGuard 中的next
+    // execute guard(to, from , _next = (cb) => { // ... }); 执行guard fn，内部执行_next((vm) => { //...})
+    // _next((vm) => {}) 执行。若typeof cb === function, 则将其加入到postEnterCbs中。并且调用 routeEnterGuard 中的next，继续执行下一个guard
+    // postEnterCbs 在导航最终确认之后，会遍历执行数组中的cb，此时可以访问组件实例
+}
+```
+
+**`extractGuards`解析**
+```javascript
+function extractGuards(records:Array<RouteRecord>, name, bind:Function, reverse?:boolean) {
+    // step1
+    const guards = flatMapComponents(records, (def, instance, match, key) => {
+        const guard = extractGuard(def, name)
+        if (guard) {
+            return Array.isArray(guard)
+                ? guard.map(guard => bind(guard, instance, match, key))
+                : bind(guard, instance, match, key)
+        }
+    });
+    // step2
+    return flatten(reverse ? guards.reverse() : guards); // flatten 将二维数组扁平化处理
+}
+
+function flatMapComponents(matched:Array<RouteRecord>, fn:Function) {
+    return flatten(matched.map(m => {
+        return Object.keys(m.components).map(key => fn(m.components[key], m.instances[key], m, key));
+    }));
+    // 拆解
+    // 每一项都是一个routeRecord
+    // matched = [
+    //     {
+    //         components: {
+    //             default: compDef
+    //         }
+    //     },
+    //     {
+    //         components: {
+    //             default: compDef
+    //         }
+    //     }
+    // ]
+    // arr = [item0 = [result0, ..., resultN], ..., itemN]
+    const arr = matched.map(m => {
+        const keys = Object.keys(m.components); // m.components = { default: componentDef, ...} keys = ['default', ...]
+        // item = [fn(m.components[default], m.instances[default], m, 'default'), ...] routeRecord.components中每一个key 执行fn() 返回结果，组成的数组
+        const item = keys.map(key => {
+            const result = fn(m.components[key], m.instances[key], m, key);
+            return result;
+        });
+        return item;
+    });
+    return flatten(arr); // arr 扁平化
+}
+
+fn = (def, instance, match, key) => {
+    const guard = extractGuard(def, name)
+    if (guard) {
+        return Array.isArray(guard)
+            ? guard.map(guard => bind(guard, instance, match, key))
+            : bind(guard, instance, match, key) // bind this to Vue instance
+    }
+}
+
+// bind vue instance
+function bindGuard(guard:NavigationGuard, instance: ?_Vue) {
+    if (instance) {
+        return function boundRouteGuard () {
+            return guard.apply(instance, arguments)
+        }
+    }
+}
 ```
 
 
+
 #### class Matcher
+
+## Component
+
+### View
+
+### Link
 
 
 
