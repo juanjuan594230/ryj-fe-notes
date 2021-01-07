@@ -136,7 +136,7 @@ class Watcher {
         return value;
     }
 
-    // ?
+    // 
     addDep(dep: Dep) {
         const id = dep.id;
         if (!this.newDepIds.has(id)) {
@@ -351,9 +351,10 @@ function mountComponent(vm, el: ?Element, hydrating?: boolean) {
     // }
 }
 
-// suppose dep.notify() -> rw.update() -> queueWatcher(rw)
+// suppose dep.notify() -> rw.update() -> queueWatcher(rw) 推入异步队列 依次执行watcher.run() 完成更新；callUpdatedHooks
 // observer/scheduler.js
 const queue: Array<Watcher> = []
+const activatedChildren = []
 const has = {}; // eg: {1: true}
 let flushing = false;
 let index = 0;
@@ -380,5 +381,48 @@ function queueWatcher(watcher: Watcher) {
         }
     }
 }
+function flushScheduleQueue() {
+    flushing = true;
+    let watcher, id;
+    // sort queue before flush
+    // This ensures that:
+    // 1. Components are updated from parent to child. (because parent is always
+    //    created before the child)
+    // 2. A component's user watchers are run before its render watcher (because
+    //    user watchers are created before the render watcher)
+    // 3. If a component is destroyed during a parent component's watcher run,
+    //    its watchers can be skipped.
+    queue.sort((a, b) => a.id - b.id);
+
+    // queue.length is dynamic  all watcher update
+    for (index = 0; index < queue.length; index++) {
+        watcher = queue[index];
+        if (watcher.before) {
+            watcher.before()
+        }
+        id = watcher.id
+        has[id] = null
+        watcher.run(); // important 
+    }
+
+    const activatedQueue = activatedChildren.slice(); // keep-alive ???
+    const updatedQueue = queue.slice()
+
+    resetSchedulerState()
+
+    callActivatedHooks(activatedQueue)
+    callUpdatedHooks(updatedQueue)
+
+
+}
+function resetSchedulerState() {
+    index = queue.length = activatedChildren.length = 0;
+    has = null;
+    waiting = flushing = false;
+}
 ```
+
+#### ComputedWatcher
+
+#### UserWatcher
 
