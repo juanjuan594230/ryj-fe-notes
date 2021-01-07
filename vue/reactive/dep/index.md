@@ -93,7 +93,7 @@ class Watcher {
         } else {
             this.deep = this.user = this.lazy = this.sync = false;
         }
-        // ?
+        // ? maybe user watcher cb(val, oldValue)
         this.cb = cb;
         this.id = uid++;
         // ?
@@ -167,9 +167,36 @@ class Watcher {
         this.newDeps.length = 0
     }
 
-    update() {}
+    // dep.notify() -> subs[i].update()
+    // Will be called when a dependency changes
+    update() {
+        if (this.lazy) { // computed watcher
+            this.dirty = true;
+        } else if (this.sync) {
+            this.run();
+        } else {
+            queueWatcher(this);
+        }
+    }
 
-    run() {}
+    run() {
+        if (this.active) {
+            const value = this.get();
+            if (
+                value !== this.value ||
+                isObject(value) ||
+                this.deep
+            ) {
+                const oldValue = this.value;
+                this.value = value;
+                if (this.user) {
+                    this.cb.call(this.vm, value, oldValue); // user watcher cb
+                } else {
+                    this.cb.call(this.vm, value, oldValue);
+                }
+            }
+        }
+    }
 
     evaluate() {}
 
@@ -292,4 +319,66 @@ newDeps = []; newDepIds = {}
 2、不再需要的依赖，需要将watcher从其对应的subs列表中移除，避免不必要的update
 3、newDeps newDepIds记录本次的依赖；deps、depIdS记录上一次的依赖；有了这两类变量，1、2才能顺利执行
 4、newDeps newDepIds只存在于派发更新的过程中。
+
+### 派发更新
+
+#### renderWatcher
+
+```javascript
+// $mount() -> mountComponent()
+function mountComponent(vm, el: ?Element, hydrating?: boolean) {
+    // ...
+    const updateComponent = () => {
+        vm._update(vm._render());
+    }
+    const before = () => {
+        if (vm._isMounted && !vm._isDestroyed) {
+            callHook(vm, 'beforeUpdate')
+        }
+    }
+    const options = { before }
+    const rw = new Watcher(vm, updateComponent, noop, options, true);
+    // rw = {
+    //     vm: vm,
+    //     getter: updateComponent,
+    //     cb: noop,
+    //     before: before,
+    //     deep: false,
+    //     user: false,
+    //     lazy: false,
+    //     sync: false,
+    //     dirty: false
+    // }
+}
+
+// suppose dep.notify() -> rw.update() -> queueWatcher(rw)
+// observer/scheduler.js
+const queue: Array<Watcher> = []
+const has = {}; // eg: {1: true}
+let flushing = false;
+let index = 0;
+let waiting = false;
+// push a watcher into the watcher queue
+function queueWatcher(watcher: Watcher) {
+    const id = watcher.id;
+    if (has[id] === null) {
+        has[id] === true;
+        //
+        if (!flushing) {
+            queue.push(watcher);
+        } else {
+            // if already flushing, splice the watcher based on its id;
+            // if already pass its id, it will be run next immediately
+            let i = queue.length - 1;
+            while( i > index && queue[i].id > watcher.id ) { i-- } // 寻找插入点 [0,1,2,3,4,5,6,8,9,10] i = 10 index = 4; finally i = 6
+            queue.splice(i + 1, 0, watcher); // insert watcher in right position
+        }
+        // queue the flush
+        if (!waiting) {
+            waiting = true;
+            nextTick(flushScheduleQueue);
+        }
+    }
+}
+```
 
