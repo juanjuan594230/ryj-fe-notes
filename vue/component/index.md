@@ -226,9 +226,18 @@ function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
         // TODO keep-alive component
         const isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
         if (isDef(i = i.hook) && isDef(i = i.init)) {
+            // create placeHolder VNode installComponentHooks() data.hook = { init: initHook }
+            // vnode.componentInstance = child child.$mount(undefined, false);
             i(vnode, false);
+        }
+        if (isDef(vnode.componentInstance)) {
+            initComponent(vnode, insertedVnodeQueue);
         }
     }
 }
 
 ```
+
+## TODO
+
+vm.$options.abstract ??

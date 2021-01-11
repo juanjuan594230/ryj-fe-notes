@@ -36,3 +36,32 @@ function mergeHook(f1, f2) {
     return merged;
 }
 ```
+
+## initHook
+
+```javascript
+const init = function(vnode: VNodeWithData, hydrating: boolean) {
+    if () {} // keep-alive component TODO
+    else {
+        const child = vnode.componentInstance = createComponentInstanceForVnode(vnode, activeInstance);
+        child.$mount(hydrating ? vnode.elm : undefined, hydrating);
+    }
+}
+
+function createComponentInstanceForVnode(vnode, parent): Component {
+    // *** options ***
+    const options = {
+        _isComponent: true,
+        _parentVnode: vnode,
+        parent
+    };
+    // *** TODO ???
+    // check inline-template render functions
+    const inlineTemplate = vnode.data.inlineTemplate
+    if (isDef(inlineTemplate)) {
+        options.render = inlineTemplate.render
+        options.staticRenderFns = inlineTemplate.staticRenderFns
+    }
+    return vnode.componentOptions._Ctor(options);
+}
+```
