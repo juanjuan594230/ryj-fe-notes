@@ -36,7 +36,7 @@ export default {
 ```javascript
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
+    <div>{{ msg }}</div>
     <HelloWorld msg="Welcome to Your Vue.js App"/>
   </div>
 </template>
@@ -48,6 +48,11 @@ export default {
   name: 'app',
   components: {
     HelloWorld
+  },
+  data() {
+      return {
+          msg: 'msgApp'
+      }
   }
 }
 </script>
@@ -200,6 +205,11 @@ function createComponent(
 ```javascript
 // vm._update(VNode) -> patch(oldVNode, VNode) -> createElm()
 // VNode -> real DOM element
+function patch() {
+    // createELm done ...
+    invokeInsertHook(vnodeAppPH, [vnodeHW, vnodeAppPh], false); // loop queue; queue[i].data.hook.insert(queue[i]); _isMounted = true; callHook('mounted') 先子后父，子vnode先插入
+    return vnodeAppPH.elm;
+}
 function createElm(
     vnode,
     insertedVnodeQueue,
@@ -211,7 +221,7 @@ function createElm(
 ) {
     // component vnode
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
-      return
+      return; // done DOM insert body
     }
 
     // normal vnode
@@ -228,16 +238,176 @@ function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
         if (isDef(i = i.hook) && isDef(i = i.init)) {
             // create placeHolder VNode installComponentHooks() data.hook = { init: initHook }
             // vnode.componentInstance = child child.$mount(undefined, false);
-            i(vnode, false);
+            i(vnode, false); // done vnodeAppPH.data.pendingInsert = [ vnodeHW ]; vnodeAppPH.componentInstance.$el 保存了真实DOM结构
         }
         if (isDef(vnode.componentInstance)) {
+            // done
+            // insertedVnodeQueue = [vnodeHW, vnodeAppPH]
+            // vnodeAppPH.elm = vnodeAppPH.componentInstance.$el
             initComponent(vnode, insertedVnodeQueue);
+            insert(parentElm, vnodeAppPH.elm, refElm); // parentElm = body DOM insert
         }
     }
 }
+```
+
+### `vnode.data.hook.init(vnode, false)`
+
+init hook call 完成子组件的实例化及挂载过程。
+
+**子组件实例化 & 挂载**
+
+Component App 是一个单文件组件，其中template 经过`vue-template-compiler`会被预处理为渲染函数，最终注入到APP组件对象中。
+
+```javascript
+// vnode.data.hook.init fn
+const child = vnode.componentInstance = createComponentInstanceForVnode(vnode, activeInstance);
+child.$mount(undefined, false);
+
+// $mount -> updateComponent -> vm._update(vm._render(), false)
+child.render = function() {
+  var _vm = this; // child
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h // child._c = (a,b,c,d) => createElement(child, a, b, c, d, false)
+  return _c(
+    "div",
+    { attrs: { id: "app" } },
+    [
+      _c("div", [_vm._v(_vm._s(_vm.msg))]),
+      _c("HelloWorld", { attrs: { msg: "Welcome to Your Vue.js App" } })
+    ],
+    1
+  )
+}
+_v = createTextVnode
+_s = toString
+_v(_s(msg)) = createTextVnode(child.msg);
+
+render.call(child, child.$createElement);
+_c(
+    'div',
+    { attrs: { id: 'app'}},
+    [
+        _c('div', [child._v(child._s(child.msg))]), // vnode div
+        _c('HelloWorld', { attrs: { msg: 'Welcome to Your Vue.js App'}}) // HelloWorld Component placeHolder vnode; vnode.componentOptions._Ctor = HelloWorld Component constructor
+    ]
+)
+// child._render() done return vnodeApp
+vnodeApp = {
+    tag: 'div',
+    children: [
+        { tag: 'div', children: [TextVNode]},
+        { tag: 'vue-component-2-HelloWorld'}
+    ]
+}
+
+// child._update(vnodeApp)
+prevEl = child.$el; // undefined
+prevVnode = child._vnode; // undefined
+activeInstance = child;
+child._vnode = vnodeApp;
+child.$el = child.__patch__(undefined, vnodeApp, false, false); // oldVnode undefined
+
+// patch(undefined, vnodeApp, false, false);
+function patch(oldVnode = undefined, vnode = vnodeApp, hydrating = false, removeOnly = false) {
+    // oldVnode 不存在啊 直接创建新的节点即可
+    let isInitialPatch = false
+    const insertedVnodeQueue = []
+    if (isUndef(oldVnode)) {
+        isInitialPatch = true;
+        createElm(vnodeApp, insertedVnodeQueue); // done vnodeApp.elm 保存了真实的DOM结构 insertedVnodeQueue = [vnodeHW]
+    }
+    invokeInsertHook(vnodeApp, insertedVnodeQueue, isInitialPatch); // vnodeApp.parent.data.pendingInsert = [vnodeHW]; vnodeApp.parent 即 APP placeHolderVnode
+    return vnodeApp.elm
+} // patch done child.$el = vnodeApp.elm;
+
+// createElm(vnodeApp, insertedVnodeQueue)
+createElm(vnodeApp, insertedVNodeQueue) {
+    // vnodeApp is  not a component vnode createComponent fn return false
+    if (createComponent(vnodeApp)) {
+        return;
+    }
+
+    // create element
+    vnodeApp.elm = createElement(tag, vnode);
+    createChildren(vnodeApp, children, insertedVnodeQueue); // children loop done vnodeApp.elm中保存了DOM结构
+    insert(parentElm, vnode.elm, refElm); // parent undefined so do noting;
+}
+
+createChildren(vnode, children, insertedVnodeQueue) {
+    // children = [ vnode<div>, vnode<HelloWorld>]
+    // vnode.elm = DOM element div
+    for (let i = 0; i < children.length; i++) {
+        // i = 0
+        // createElm() normal node createElement and insert(vnodeApp.elm, node div, null); 过程中还经历过一次createChildren, 最终vnode<div>插入到了vnodeApp.elm中
+        // i = 1
+        // createElm(vnodeHW, insertedVnodeQueue, vnodeApp.elm, null, true, children, 1);
+        createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i);
+    }
+} // loop done insertedVnodeQueue = [vnodeHW]
+
+    // 递归进入createElm HelloWorldVNode
+    createElm(vnodeHW, insertedVnodeQueue, vnodeApp.elm, null, true, children, 1) {
+        // component vnode return true
+        if (createComponent(vnodeHw, insertedVnodeQueue, vnodeApp.elm, null)) {
+            return;
+        }
+    } // createElm HelloWorldVNode done; DOM inserted and insertedVnodeQueue = [vnodeHW]
+
+        // createComponent HelloWorld
+        createComponent(vnodeHW, insertedVnodeQueue, vnodeApp.elm, null) {
+            // HelloWorld component instance & mount
+            // suppose init done _vnodeHW.elm已经挂载了HelloWorld 组件的真实DOM结构。 内部实例化与挂载的过程先忽略（大致与APP一致）
+            vnodeHw.data.hook.init(vnodeHW); // patch -> invokeInsertHook(_vnodeHW, insertedVnodeQueue, isInitialPatch) _vnodeHW 代表vnodeHW代表的真实vnode结构，而非占位VNode
+
+            if (isDef(vnodeHW.componentInstance)) {
+                initComponent(vnodeHw, insertedVnodeQueue); // insertedVnodeQueue = [vnodeHW]
+                insert(vnodeApp.elm, vnodeHw.elm, null); // 将vnodeHW.elm 插入到vnodeApp.elm中， 组件HelloWorld DOM 插入
+                // keep-alive later
+                if (isTrue(isReactivated)) {
+                    reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
+                }
+                return true;
+            }
+        }
+
+            // vnodeHw.data.hook.init(vnodeHW) process
+            // vnodeHw 挂载 patch 中 invokeInsertHook analysis
+            invokeInsertHook(vnode = _vnodeHW, queue = [], initial = true) {
+                if (isTrue(initial) && _vnodeHW.parent) { // _vnodeHw.parent = vnodeHW(HelloWorld component placeHolder vnode);
+                    _vnodeHW.parent.data.pendingInsert = queue;
+                }
+            }
+
+            // createComponent(vnodeHW, insertedVnodeQueue, vnodeApp.elm, null) process
+            // initComponent
+            initComponent(vnodeHW, insertedVnodeQueue) {
+                // vnodeHW.data.pendingInsert = []
+                // because of empty， so no operate
+                if (isDef(vnode.data.pendingInsert)) {
+                    insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert)
+                    vnode.data.pendingInsert = null
+                }
+
+                vnodeHw.elm = vnodeHW.componentInstance.$el; // _vnodeHW.elm
+
+                if (isPatchable(vnodeHW)) { // 是否已经patch过 false;
+                    // update logic later
+                } else {
+                    insertedVnodeQueue.push(vnodeHW);
+                }
+            }
 
 ```
+
+子组件APP 实例化及挂载完成之后，`vmApp.$el`中保存了真实的DOM结构；
 
 ## TODO
 
 vm.$options.abstract ??
+
+## 单文件组件
+
+### template
+
+`vue-template-compiler` 预处理为JS渲染函数，最终注入到`<script>`导出的组件中。

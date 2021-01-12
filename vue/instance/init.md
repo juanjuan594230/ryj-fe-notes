@@ -203,7 +203,7 @@ function mergeHooks(
 ```javascript
 function initLifeCycle(vm) {
     const options = vm.$options;
-    if (options.parent && !options.parent.abstract) { // TODO parent.abstract ? 抽象组件
+    if (options.parent && !options.parent.abstract) { // TODO parent.abstract ? keep-alive transition transition-group abstract: true
         parent.$children.push(vm);
     }
     vm.$parent = options.parent;
