@@ -322,7 +322,7 @@ function patch(oldVnode = undefined, vnode = vnodeApp, hydrating = false, remove
 } // patch done child.$el = vnodeApp.elm;
 
 // createElm(vnodeApp, insertedVnodeQueue)
-createElm(vnodeApp, insertedVNodeQueue) {
+createElm(vnodeApp, insertedVNodeQueue, parentElm = null, refElm = null) {
     // vnodeApp is  not a component vnode createComponent fn return false
     if (createComponent(vnodeApp)) {
         return;
@@ -402,6 +402,34 @@ createChildren(vnode, children, insertedVnodeQueue) {
 
 子组件APP 实例化及挂载完成之后，`vmApp.$el`中保存了真实的DOM结构；
 
+## 一些感悟
+
+对于组件：
+
+vnodePH：每一个组件都对应一个 占位符Vnode vnodePH。
+- 在Vnode生成的过程中，会去创建组件的构造函数。
+- Vnode.data.hook中保存了一些组件相关的hooks，例如init\insert
+- init hook 完成子组件的实例化及挂载的过程；insert hook 更改 _isMounted = true 并执行 mounted 生命周期。
+- 组件的patch 会走到 createComponent 中。
+
+`createComponent(vnodePH, insertedVnodeQueue, parentElm, refElm)`
+```javascript
+// 1.
+// vnodePH.componentInstance = vmChild;
+// vmChild.$el 中保存了组件真实的DOM结构
+vnodePH.data.hook.init(vnodePH);
+if vnodePH.componentInstance
+    // vnodePH.data.pendingInsert 的来源
+        // vmChild._parentVnode = vnodePH
+        // $mount -> render() 生成vnode 并将vnodePH设置为vnode的parent vnode.parent = vnodePH
+        // $mount -> _update() -> patch -> invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch) 满足isInitialPatch && vnode.parent vnode.parent.data.pendingInsert = insertedVnodeQueue;
+    // 1\将vnodePH.data.pendingInsert 全部push到了insertedVnodeQueue
+    // 2\vnodePH.elm = vnodePH.componentInstance.$el = vnode.elm
+    // 3\!isPatchable(vnodePH) insertedVnodeQueue = [pendingInsert, vnodePH]
+    initComponent(vnodePH, insertedVnodeQueue);
+    insert(parentElm, vnodePH.elm, refElm); // DOM insert
+```
+
 ## TODO
 
 vm.$options.abstract ??
@@ -411,3 +439,93 @@ vm.$options.abstract ??
 ### template
 
 `vue-template-compiler` 预处理为JS渲染函数，最终注入到`<script>`导出的组件中。
+
+## process
+
+```javascript
+// entry
+const vmRoot = new Vue(
+    render: h => h(App)
+);
+vmRoot.$mount('#app');
+
+vmRoot._update(vmRoot._render(), false)
+    vnodeAppPH = vmRoot._render() // 在此过程中也完成了APP Ctor的创建；vnodeAppPH.data.hook中也保存了一系列hooks
+vmRoot._update(vnodeAppPH, false);
+    vmRoot._vnode = vnodeAppPH;
+    vmRoot.$el = vmRoot.__patch__(vmRoot.$el, vnodeAppPH, false, false);
+        patch(oldVnode = vmRoot.$el, vnode = vnodeAppPH)
+            insertedVnodeQueue = [];
+            isInitialPatch = false;
+            createElm(vnodeAppPH, insertedVnodeQueue, body, null)
+                createComponent(vnodeAppPH, insertedVnodeQueue, body, null);
+                    vnodeAppPH.data.hook.init(vnodeAppPH);
+                        vnodeAppPH.componentInstance = vmApp;
+                        vmApp.$mount(undefined);
+                            vnodeApp = vmApp._render(); // { tag: 'div', children: [ vnodeHelloWorldPH ]}
+                            vmApp._update(vnodeApp)
+                                vmApp.$el = vmApp.__patch__(undefined, vnodeApp, false, false);
+                                    // patch
+                                    insertedVnodeQueue = [];
+                                    isInitialPatch = true;
+                                    createElm(vnodeApp, insertedVnodeQueue);
+                                        vnodeApp.elm = document.createElement('div');
+                                        createChildren(vnodeApp, children, insertedVnodeQueue);
+                                            createElm(vnodeHelloWorldPH, insertedVnodeQueue, vnodeApp.elm, null, true, children, 0)
+                                                createComponent(vnodeHelloWorldPH, insertedVnodeQueue, vnodeApp.elm, null)
+                                                    vnodeHelloWorldPH.data.hook.init(vnodeHelloWorldPH);
+                                                        vnodeHelloWorldPH.componentInstance = vmHelloWorld;
+                                                        vmHelloWorld.$mount(undefined);
+                                                            vnodeHelloWorld = vmHelloWorld._render();
+                                                            vmHelloWorld._update(vnodeHelloWorld);
+                                                                vmHelloWorld.$el = vmHelloWorld.__patch__(undefined, vnodeHelloWorld, false, false);
+                                                                    // patch
+                                                                    insertedVnodeQueue = [];
+                                                                    isInitialPatch = true;
+                                                                    createElm(vnodeHelloWorld, insertedVnodeQueue);
+                                                                        vnodeHelloWorld.elm = document.createElement('div');
+                                                                        createChildren(vnodeHelloWorld, [textVnode], vnodeHelloWorld.elm, null);
+                                                                            createElm(textVnode, insertedVnodeQueue, vnodeHelloWorld.elm, null, true, children, 0);
+                                                                                textVnode.elm = 'hello world';
+                                                                                insert(vnodeHelloWorld.elm, 'helloWorld', null); // vnodeHelloWorld.elm = div-> hello world
+                                                                        insert(null, vnodeHelloWorld.elm, null);
+                                                                    invokeInsertHook(vnodeHelloWorld, insertedVnodeQueue, true);
+                                                                        isTrue(true) && vnodeHelloWorld.parent<vnodeHelloWorldPH>
+                                                                            vnodeHelloWorldPH.data.pendingInsert = [];
+                                                                    return vnodeHelloWorld.elm; // div->hello world
+                                                                vmHelloWorld.$el = vnodeHelloWorld.elm;
+                                                    initComponent(vnodeHelloWorldPH, insertedVnodeQueue);
+                                                        vnodeHelloWorldPH.data.pendingInsert && insertedVnodeQueue.push(...[]);
+                                                        vnodeHelloWorldPH.elm = vnodeHelloWorldPH.componentInstance.$el = vnodeHelloWorld.elm; // div->hello world
+                                                        !isPatchable(vnodeHelloWorldPH) && insertedVnodeQueue.push(vnodeHelloWorldPH);
+                                                    insert(vnodeApp.elm, vnodeHelloWorldPH.elm, null); // div -> div -> hello world
+                                                    return true;
+                                            return;
+                                        insert(undefined, vnodeApp.elm, null);
+                                    invokeInsertHook(vnodeApp, [vnodeHelloWorldPH], true);
+                                        vnodeAppPH.data.pendingInsert = [vnodeHelloWorldPH];
+                                    return vnodeApp.elm;
+                                vmApp.$el = vnodeApp.elm; // div -> div -> hello world
+                    initComponent(vnodeAppPH, insertedVnodeQueue);
+                        insertedVnodeQueue = [vnodeHelloWorldPH];
+                        vnodeAppPH.elm = vmApp.$el = vnodeApp.elm; // div -> div -> hello world
+                        insertedVnodeQueue.push(vnodeAppPH); // insertedVnodeQueue = [vnodeHelloWorldPH, vnodeAppPH]
+                    insert(body, vnodeAppPH.elm, null); // body -> div -> div -> hello world
+                    return true;
+                return;
+            invokeInsertHook(vnodeAppPH, [vnodeHelloWorldPH, vnodeAppPH], false)
+                loop queue -> queue.data.hook.insert(queue[i]); // _isMounted = true mounted hook call
+            return vnodeAppPH.elm;
+    vmRoot.$el = vnodeAppPH.elm;
+```
+
+## lifeCycle
+
+先父后子：
+beforeCreate
+created
+beforeMounted
+
+先子后父：
+mounted
+
