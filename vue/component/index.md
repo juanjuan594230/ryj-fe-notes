@@ -524,8 +524,72 @@ vmRoot._update(vnodeAppPH, false);
 先父后子：
 beforeCreate
 created
-beforeMounted
+beforeMount
+beforeUpdate
+updated
+beforeDestroy
+~~destroyed~~
 
 先子后父：
 mounted
+~~beforeDestroy~~
+destroyed
 
+```javascript
+// beforeCreate & created
+// 先父后子 父组件的实例化先与子组件（子组件的实例化过程发生在父组件挂载的过程中）
+function _init(options) {
+    // merge options
+    initLifecycle(); // $parent $children = [] $refs = {}
+    initEvents();
+    initRender(); // _c $createElement
+    callHook(vm, 'beforeCreate');
+    initState();
+    callHook(vm, 'created');
+}
+// beforeMount & mounted
+// vm.$mount -> mountComponent
+mountComponent(vm, el) {
+    // 父组件的挂载要早于子组件，所以beforeMount的执行顺序是先父后子
+    callHook(vm, 'beforeMount');
+    // new Watcher -> this.get -> this.getter -> vm._update(vm._render());
+    // vm._update(vnode) -> patch
+        // 子组件实例化及挂载，并维护一个insertedVnodeQueue，存放已经进行实例化、挂载及插入的组件占位vnode
+    // 根组件patch结束会执行 invokeInsertHook(vnode, insertedVnodeQueue, false); // 遍历queue，call queue[i].data.hook.insert(queue[i])
+    // insert(vnode) -> callHook(vnode.componentInstance, 'mounted');
+    // 由于自组件的patch过程是一个深度递归的过程，因此子组件vnode会先比父组件vnode提前加入到insertedVnodeQueue中，所以mounted执行是子->父
+    new Watcher(vm, updateComponent, noop, {
+        before() { callHook(vm, 'beforeUpdate')}
+    }, true);
+    // vmRoot mounted
+    if (vm.$vnode === null) { // 根组件
+        vm._isMounted = true;
+        callHook(vm, 'mounted');
+    }
+}
+
+// beforeUpdate & updated 都是先父后子
+// renderWatcher 实例化时，rw.before = () => { callHook(vm, 'beforeUpdate')}
+// data setter trigger -> dep.notify -> watcher.update -> queueWatcher(watcher);
+// 执行queueWatcher前，会先进行排序，父组件的watcher会排在子组件watcher的前面；
+queueWatcher.sort((a,b) => a - b);
+for (let watcher of queueWatcher) {
+    watcher.before(); // beforeUpdate
+    watcher.run();
+}
+
+callUpdateHooks(queueWatcher);
+
+// beforeDestroy 先父后子 && destroyed 先子后父
+patch(oldVnode, vnode) {
+    // oldVnode exits && is Not a real element
+    // vnode exist
+    if (!sameVnode(oldVnode, vnode)) {
+        createElm(vnode);
+        // oldVnode 执行销毁逻辑 简略的，非官方code
+        // invokeDestroyHook 中 vnode.data.hook.destroy() vm.$destroy() callHook(vm, 'beforeDestroy') callHook(vm, 'destroyed')
+        // 接下来遍历vnode.children，递归执行invokeDestroyHook;
+        invokeDestroyHook(oldVnode);
+    }
+}
+```
