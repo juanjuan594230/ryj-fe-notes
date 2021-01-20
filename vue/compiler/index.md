@@ -324,3 +324,367 @@ function parseHTML(html, options) {
     }
 }
 ```
+
+#### parseHTML
+
+parseHTML的过程就是利用正则表达式对template做匹配的过程。当前这一段匹配结束之后，会前进相应的步数（也就是将匹配完的字符从template中去除），对剩余的template继续做匹配；直至整个template匹配完成，
+
+```javascript
+// 匹配过程用到的正则表达式
+const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
+const ncname = '[a-zA-Z_][\\w\\-\\.]*'
+const qnameCapture = `((?:${ncname}\\:)?${ncname})` // (?:x) 匹配x但不记录 非捕获括号
+const startTagOpen = new RegExp(`^<${qnameCapture}`); // 匹配startTag and tagName eg: <div id="app"></div>.match(startTagOpen) = ['<div', 'div']
+const startTagClose = /^\s*(\/?)>/
+const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
+const doctype = /^<!DOCTYPE [^>]+>/i
+const comment = /^<!\--/
+const conditionalComment = /^<!\[/
+// 伪代码
+function parserHTML(html, options) {
+    let index = 0;
+    let lastTag;
+    let last
+    while(html) {
+        last = html;
+        if (!lastTag || !isPlainTextElement(lastTag)) {
+            const textEnd = html.indexOf('<');
+            if (textEnd === 0) {
+                if (matchComment) {
+                    advance(commentLength);
+                    continue;
+                }
+
+                if (matchDoctype) {
+                    advance(doctypeLength);
+                    continue;
+                }
+
+                if (matchEndTag) {
+                    advance(endTagLength);
+                    parseEndTag();
+                    continue;
+                }
+
+                if (matchStartTag) {
+                    parseStartTag();
+                    handleStartTag();
+                    continue;
+                }
+            }
+            handleText();
+            advance(textLength);
+        } else {
+            handlePlainTextElement();
+            parseEndTag();
+        }
+    }
+
+    if (html === last) {
+        options.chars && options.chars(html);
+        break;
+    }
+
+    // 移动index 切割html
+    function advance(n) {
+        index += n;
+        html.substring(n);
+    }
+}
+```
+
+**注释节点 & 文档类型节点**
+
+这两类型的节点的处理方式都是直接前进相应的步长，继续解析剩余的html；
+
+```javascript
+// regex
+const doctype = /^<!DOCTYPE [^>]+>/i // <!DOCTYPE html>
+const comment = /^<!\--/ // <!--
+const conditionalComment = /^<!\[/ // 条件注释 <![
+
+// 注释节点: 寻找到注释节点的结尾处，前进index，并截取剩余的html
+// 条件注释的节点处理方式也是类似的
+if(comment.test(html)) {
+    const commentEnd = html.indexOf('-->');
+    if (commentEnd >= 0) {
+        advance(commentEnd + 3)
+        continue;
+    }
+};
+
+// 文档类型节点
+const doctypeMatch = html.match(doctype);
+if (doctypeMatch) {
+    advance(doctypeMatch[0].length);
+    continue;
+}
+```
+
+**startTag**
+
+匹配到startTag，解析出tagName/attrs，判断是否是一元标签，不是的话，将表示这个标签的一些属性值组成对象，并入栈。lastTag = tagName; 然后调用options.start
+
+```javascript
+// regex
+const startTagOpen = new RegExp(`^<${qnameCapture}`); // 匹配startTag and tagName eg: <div id="app"></div>.match(startTagOpen) = ['<div', 'div']
+const startTagClose = /^\s*(\/?)>/;
+if (textEnd === 0) {
+    // startTag
+    const startTagMatch = parseStartTag();
+    if (startTagMatch) {
+        handleStartTag(startTagMatch);
+        continue;
+    }
+}
+
+// parseStartTag parseHTML中的函数，因此可以访问一些闭包变量
+// return a match obj includes tagName attrs start end unarySlash ...
+function parseStartTag() {
+    // string.prototype.match(regex) return an array; and some additional props, like groups index input
+    const start = html.match(startTagOpen); // eg: <div id="app"></div> start = ['<div', 'div']
+    if (start) {
+        const match = {
+            tagName: start[1],
+            attrs: [],
+            start: index
+        };
+        advance(start[0].length); // eg: html = ' id="app"></div>'
+        let end, attr;
+        // 循环遍历标签上的属性
+        // loop1
+        // attr = [' id="app"', 'id', '=', 'app', undefined, undefined] index = 0; input = html; groups = undefined
+        // end = null
+        // loop2 end = ['>', ''] 循环end 第二项表示是否匹配到了自闭合标签
+        while (!(end = html.match(startTagClose)) && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
+            attr.start = index;
+            advance(attr[0].length);
+            attr.end = index;
+            match.attrs.push(attr);
+        }
+        if (end) {
+            match.unarySlash = end[1];
+            advance(end[0].length);
+            match.end = index;
+            return match;
+        }
+    }
+}
+
+// 对match做一些处理
+function handleStartTag(match) {
+    const { tagName, unarySlash } = match;
+
+    // 是否是一元标签
+    const unary = isUnaryTag(tagName) || !unarySlash;
+
+    // 对match.attrs做处理
+    // 遍历match.attrs，提取match.attrs[i]中对应的key & value，将{key: xxx, value:xxx}push到attrs数组中
+    const attrs = [
+        { key: xxx, value: xxx},
+        ...
+    ];
+
+    // stack中push了一个描述这个标签的对象
+    if (!unary) {
+        stack.push({
+            tag: tagName,
+            attrs,
+            start: match.start,
+            end: match.end,
+            lowerCasedTag: tagName.toLowerCase()
+        });
+        lastTag = tagName;
+    }
+
+    // TODO options.start稍后再分析
+    if (options.start) {
+        options.start(tagName, attrs, unary, match.start, match.end);
+    }
+}
+
+```
+
+**endTag**
+
+遇到endTag，就应该要从stack中pop元素了。
+
+```javascript
+// regex
+const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
+if (endText === 0) {
+    const endTagMatch = html.match(endTag);
+    if (endTagMatch) {
+        const curIndex = index;
+        advance(endTagMatch[0].length);
+        parseEndTag(endTagMatch[1], curIndex, index);
+        continue;
+    }
+}
+
+function parseEndTag(tagName, start, end) {
+    // 从stack的末尾寻找第一个与当前endTag匹配的元素。
+    // 在遇到startTag 且不是一元标签时，会将其以及包含属性等的对象压栈。遇到endTag，就是从栈顶开始做匹配的过程
+    // 正常情况下，栈顶的元素应该能和当前的endTag匹配
+    // 异常情况下，某些标签未正确闭合，eg: <div><span>xxx</div> 此时stack = [div, span] 但目前的endTag为</div> 此时就需要从栈顶开始，直至找到第一个与endTag相匹配的标签，记录在栈中的位置
+    let pos;
+    if (tagName) {
+        for (pos = stack.length - 1; pos >= 0; pos--) {
+            if (stack[pos].tagName === tagName) {
+                break;
+            }
+        }
+        // loop end pos is the match tag position
+    } else {
+        pos = 0;
+    }
+
+    if (pos >= 0) {
+        for (let i = stack.length - 1; i >= pos; i--) {
+            options.end && options.end(stack[i].tag, start, end);
+        }
+        stack.length = pos;
+        lastTag = pos && stack[pos - 1].tag;
+    }
+}
+```
+
+**TextTag**
+
+```javascript
+const textEnd = html.indexOf('<');
+// eg: html = '<aaa</div>' textEnd = 0 但是没有匹配到注释、文档类型、tagOpen、tagEnd中的任意一种
+// 因此应该是文本节点中包含了<符号
+// find whole text 其中涉及了当文本中包含了<的处理
+let text, rest, next;
+if (textEnd >= 0) {
+    rest = html.slice(textEnd);
+    // textEnd 处所匹配到的<，其实属于文本节点中的一部分；这种情况下，需要正确找到文本节点的结束之处；也就是找到真正的不代表文本的< textEnd最后所指的位置就是这里。0 - textEnd之间的，就是文本
+    // eg: rest = <aaa</div> textEnd = 0;
+    // loop1: next = 4 textEnd = 0 + 4; rest = </div> 此时就找到了正确的文本结束位置
+    while (!endTag.test(rest) && !startTagOpen.test(rest) && !comment.test(rest) && !conditionalComment.test(rest)) {
+        // str.indexOf(searchValue [, fromIndex])
+        next = rest.indexOf('<', 1); // find next <
+        if (next < 0) break;
+        textEnd += next;
+        rest = html.slice(textEnd);
+    }
+    text = html.substring(0, textEnd);
+}
+
+if (textEnd < 0) {
+    text = html;
+}
+
+if (text) {
+    advance(text.length);
+}
+
+if (options.chars && text) {
+    options.chars(text, index - text.length, index);
+}
+```
+
+**parseHTML options**
+
+```javascript
+options = {
+    start: fn,
+    end: fn,
+    chars: fn
+}
+```
+
+在上述处理不同的标签时，最后都调用了不同的options中的方法。下面看看这些方法吧。
+
+
+1. start 处理开始tag
+
+```javascript
+function start(tag, attrs, unary, start, end) {
+    // 创建对应的ASTElement
+    const element = createASTElement(tag, attrs, currentParent);
+    // 处理element
+    processElement(element);
+    treeManagement();
+}
+
+// step1 createASTElement
+createASTElement(tag, attrs, parent): ASTElement {
+    return {
+        type: 1,
+        tag,
+        attrsList: attrs,
+        attrsMap: makeAttrsMap(attrs),
+        rawAttrsMap: {},
+        children: [],
+        parent
+    }
+}
+
+// step deal with ASTElement
+// 结果就是扩展ASTElement元素的属性
+// pre-transforms ???
+// 对包含的指令做处理
+processFor(element);
+processIf(element);
+processOnce(element);
+
+// step3. tree management
+if (!root) {
+    root = element;
+}
+if (!unary) {
+    stack.push(element); // ASTElement push stack
+    currentParent = element;
+} else {
+    closeElement(); // 会将element push 到 parent.children中
+}
+
+```
+
+2. end 处理endTag
+
+```javascript
+// 在parseEndTag中，会对pos之前的元素做闭合操作。也就是调用end
+function end(tag, start, end) {
+    // 元素出栈
+    const element = stack[stack.length - 1];
+    stack.length -= 1;
+    currentParent = stack[stack.length - 1];
+    closeElement(element);
+}
+
+function closeElement(element) {
+    // ...
+    currentParent.children.push(element);
+    element.parent = currentParent;
+    // 其余逻辑先不看
+}
+```
+
+3. text 处理text
+
+```javascript
+function chars(text, start, end) {
+    const children = currentParent.children;
+    let child;
+    // type = 2 or type = 3
+    if (!inPre && text !== ' ' && res = parseText(text, delimiters)) {
+        child = {
+            type: 2,
+            expression: res.expression
+            tokens: res.tokens,
+            text
+        }
+    } else if (text !== ' ' || !children.length || children[children.length - 1].text !== ' ') {
+        child = {
+            type: 3,
+            text
+        }
+    }
+    children.push(child);
+}
+
+// parseText 完了再分析吧
+```
