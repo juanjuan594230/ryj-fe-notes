@@ -688,3 +688,60 @@ function chars(text, start, end) {
 
 // parseText 完了再分析吧
 ```
+
+### optimize
+
+构建出AST之后，紧接着就是对这颗AST做优化。
+
+optimize AST 主要做了两件事
+1. 标记静态节点
+2. 标记静态根
+
+```javascript
+function baseCompile(template, options) {
+    const ast = parse(template, options);
+    optimize(ast, options);
+    ...
+}
+
+function optimize(root, options) {
+    if (!root) return;
+    markStatic(root);
+    markStaticRoots(root, false);
+}
+```
+
+#### markStatic
+
+```javascript
+function markStatic(node) {
+    node.static = isStatic(node);
+    if (node.type === 1) {
+        // 遍历children，递归调用markStatic
+        for (let child of node.children) {
+            markChild(child);
+            if (!child.static) {
+                node.static = false;
+            }
+        }
+        if (node.ifConditions) {
+            // 先留一个空白
+        }
+    }
+}
+```
+
+#### markStaticRoots
+
+节点本身是静态节点，并且满足node.children都是静态节点，则将该根节点标记为静态节点。
+
+#### 总结
+
+ASTNode分为了三种type：1，2，3
+
+2，3都代表文本节点；2表示该文本节点中包含了表达式，所以一定是一个非静态节点； 3 表示是一个纯文本节点，是静态的。
+
+根节点只可能是type为1的节点。
+
+因此标记完成之后，每一个节点都会多一个static属性，type为1的普通元素AstNode多了一个isStaticRoot属性。
+
