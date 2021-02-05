@@ -11,5 +11,3 @@
 ![](../images/wx-mini-project/小程序通信.png)
 
 ## 注册
-
-
