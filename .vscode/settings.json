@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "before",
         "hashchange",
         "old",
         "popstate",
@@ -10,6 +11,7 @@
         "thenable",
         "thenables",
         "typeof",
+        "unmount",
         "vnode",
         "vnodes"
     ]
