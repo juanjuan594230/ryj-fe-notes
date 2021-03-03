@@ -2,8 +2,8 @@
 
 大纲：
 
-1、var声明的变量会提升到全局或者函数作用域的顶部
-2、let、const引入了块级作用域的概念，在作用域内没有变量声明提升；相同作用域存在的变量不能重复声明；存在暂时性死区
+1、var声明的变量会提升到全局或者函数作用域的顶部（只提升声明，初始化不会提升）
+2、let、const引入了块级作用域的概念，在作用域内没有变量声明提升；相同作用域存在的变量不能重复声明；存在暂时性死区（声明之前不能访问）
 3、const声明时需要初始化，且不能重新赋值（不能修改绑定）；
 
 
@@ -54,8 +54,14 @@ if (condition) {
 ```
 
 eg:深入理解TDZ
+When a JavaScript engine looks through an upcoming block and finds a variable declaration, it either hoists the declaration to the top of the function or global scope (for var) or places the declaration in the TDZ (for let and const). Any attempt to access a variable in the TDZ results in a runtime error. That variable is only removed from the TDZ, and therefore safe to use, once execution flows to the variable declaration.
 ```javascript
+console.log(typeof value);     // "undefined" value此时不存在于TDZ
 
+if (condition) {
+    console.log(typeof value); // 这个时候会被放入TDZ，此时访问就会报错
+    let value = "blue";
+}
 ```
 
 * `let` `const` declaration in loops
