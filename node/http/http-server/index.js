@@ -17,7 +17,4 @@ server.listen(port, host, () => {
     console.log(`Server is running on http://${host}:${port}`);
 });
 
-// response html or json or CSV
-
-
 
