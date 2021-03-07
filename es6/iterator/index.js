@@ -48,12 +48,18 @@
 
 // function *createIterator() {
 //     let first = yield 1;
+//     console.log('first', first);
 //     let second = yield first + 2;
 //     yield second + 3;
 // }
 // const iterator = createIterator();
+// // console.log(iterator.next(2)); // { value: 1, done: false} 通过yield语句向iterator传值
+// // console.log(iterator.next(4)); // { value: 6, done: false }
+// // console.log(iterator.next(5)); // { value: 8, done: false }
+// // console.log(iterator.next(4)); // { value: undefined, done: true }
+
 // console.log(iterator.next(2)); // { value: 1, done: false} 通过yield语句向iterator传值
-// console.log(iterator.next(4)); // { value: 6, done: false }
+// console.log(iterator.next()); // undefined { value: NaN, done: false } first的值是由通过next传递的参数决定的，没有传参数，first 为 undefined
 // console.log(iterator.next(5)); // { value: 8, done: false }
 // console.log(iterator.next(4)); // { value: undefined, done: true }
 
@@ -94,6 +100,12 @@
 //     return 3;
 // }
 
+// // const numsIterator = createNumsIterator();
+// // console.log(numsIterator.next()); // { value: 1, done: false }
+// // console.log(numsIterator.next()); // { value: 2, done: false }
+// // console.log(numsIterator.next()); // { value: 3, done: false } // 为什么这里会产出3，而通过委派，return3这一条不会产出，而是作为返回值赋值给了参数。 ？？？
+// // console.log(numsIterator.next()); // { value: undefined, done: false }
+
 // function *createIterator(twice) {
 //     for(let i = 0; i < twice; i++) {
 //         yield 'repeat'
@@ -102,10 +114,12 @@
 
 // function *createCombineIterator() {
 //     const result = yield *createNumsIterator();
+//     // console.log('result', result);
 //     yield *createIterator(result);
 // }
 
 // const iterator = createCombineIterator();
+// // wsm return 3 不会被 产出 ？？？
 // console.log(iterator.next()); // { value: 1, done: false }
 // console.log(iterator.next()); // { value: 2, done: false }
 // console.log(iterator.next()); // { value: 'repeat', done: false }
@@ -229,13 +243,29 @@
 //     console.log(val);
 // }
 
-function * createIterator() {
-    yield 'This';
-    yield 'is';
-    yield 'iterable'
-}
+// function * createIterator() {
+//     yield 'This';
+//     yield 'is';
+//     yield 'iterable'
+// }
 
-for(let value of createIterator()) {
-    console.log(value);
-}
+// for(let value of createIterator()) {
+//     console.log(value);
+// }
 
+
+// iterator and async program
+
+var iterable = {
+    [Symbol.iterator]: function* generatorWithPromise() {
+      // define an array of async data
+      const promises = [Promise.resolve(1), Promise.resolve(2)];
+      while (promises.length) {
+        yield promises.shift();
+      }
+    }
+};
+for (const item of iterable) {
+    item.then(console.log);
+}
+console.log("done"); // done 1 2

@@ -4,16 +4,24 @@
 
 传统的For循环是通过变量跟踪数组的下标来实现的。当for循环发生嵌套时，就需要跟踪多个变量，就会给编程带来一定的复杂性，也会导致引入错误。
 
-- 迭代器使得遍历集合数据更加容易。
+- 迭代器使得遍历集合数据更加容易。 Iterators make working with collections of data easier
 - 异步编程更加简单
 
 `for-of` 、扩展运算符`...`基于iterator工作。
 
 ## es6为什么引入iterator
 
+当数组的长度已经超出了整数下标可以表示的数值范围，for循环就无法正常的运作。
+嵌套多层循环，追踪多个变量，就会给编程带来一定的复杂性，也会导致引入错误。
+统一的遍历集合\数组数据的方法
+for index存在一定的局限性
+异步编程？(暂时还没有get到)
+
+
 ???
 
-迭代器只是实现了iterator接口的对象。所有的迭代器对象都有一个`next`方法，并且返回一个对象。
+迭代器只是实现了iterator接口的对象。所有的迭代器对象都有一个`next`方法，调用该方法，返回一个对象。
+迭代器维护了一个内部集合元素位置的指针。next()调用就会返回下一个合适的值。
 
 ```javascript
 const obj = iterator.next();
@@ -28,11 +36,11 @@ const obj = iterator.next();
 
 ```javascript
 function createIterator(items) {
-    var i = 0;
+    var i = 0; // location pointer
     return {
         next: function() {
             var done = i >= item.length;
-            var value = !done ? item[i++] : undefined;
+            var value = !done ? item[i++] : undefined; // 根据location 寻找下一个要返回的值
             return {
                 value: value
                 done: done
@@ -50,6 +58,8 @@ console.log(iterator.next()); // { value: undefined, done: true}
 
 ## generator
 
+> A generator is a factory function of iterators(https://www.codementor.io/@tiagolopesferreira/asynchronous-iterators-in-javascript-jl1yg8la1)
+
 一般的function执行之后，无法停止，直到执行完最后一句（or 使用return语句 or 抛出错误）；再次调用则会重新从最顶部的语句开始执行。
 
 ### 定义
@@ -61,7 +71,7 @@ console.log(iterator.next()); // { value: undefined, done: true}
 生成器是一类特殊的函数，简化编写迭代器的任务。
 生成器是一个函数，返回一系列的结果
 
-在JS中，generator是一个函数，返回一个对象（包含next fn）。每次调用next fn，都会返回一个对象（包含了value和done两个属性）。当返回的对象属性done为true时，生成器停止执行，并且不会再生成新的值。
+在JS中，generator是一个函数，返回一个迭代器对象（包含next fn）。每次调用next fn，都会返回一个对象（包含了value和done两个属性）。当返回的对象属性done为true时，生成器停止执行，并且不会再生成新的值。
 
 ### 创建
 
@@ -73,7 +83,7 @@ console.log(iterator.next()); // { value: undefined, done: true}
 
 在生成器函数中也可以使用return关键字。return关键字会使得生成器返回对象的done属性变成true，因此生成器将不会再生成更多的值。如果没有明确的return语句，默认在函数的最后会有return undefined.
 
-调用生成器函数会返回一个生成器对象（iterator对象）；
+调用生成器函数会返回一个生成器对象（iterator对象），此时函数体本身不会被执行；
 
 在生成器返回的对象上，可以调用next fn，生成器便开始执行。
 
@@ -235,6 +245,12 @@ console.log(powerOf2.next().value); // 9
 
 每次`for-of`循环执行时，都会在iterator上调用next方法，并将返回的value值赋值到变量上；直至返回的done为true，循环结束
 
+for-of 内部执行原理：
+
+objIterator = obj[Symbol.iterator]();
+objIterator.next();
+直到done为true；
+
 ```javascript
 const nums = [1,2,4];
 for(let num of nums) {
@@ -345,13 +361,20 @@ function *createIterator() {
     yield second + 3;
 }
 const iterator = createIterator();
+// 传递参数
 console.log(iterator.next()); // { value: 1, done: false} 通过yield语句向iterator传值
 console.log(iteratot.next(4)); // { value: 6, done: false }
 console.log(iteratot.next(5)); // { value: 8, done: false }
 console.log(iteratot.next(4)); // { value: undefined, done: true }
+
+// 未传递参数
+console.log(iterator.next(2)); // { value: 1, done: false} 通过yield语句向iterator传值
+console.log(iterator.next()); // undefined { value: NaN, done: false } first的值是由通过next传递的参数决定的，没有传参数，first 为 undefined
+console.log(iterator.next(5)); // { value: 8, done: false }
+console.log(iterator.next(4)); // { value: undefined, done: true }
 ```
 
-首次调用next方法比较特别，因为通过next传递的参数会丢失。???
+**首次调用next方法比较特别，因为通过next传递的参数会丢失。???**
 
 Since arguments passed to next() become the values returned by yield, an argument from the first call to next() could only replace the first yield statement in the generator function if it could be accessed before that yield statement. That’s not possible, so there’s no reason to pass an argument the first time next() is called.
 
@@ -409,7 +432,7 @@ iterator.next(); // { value: undefined, done: true }
 
 ==`for-of`和扩展运算符判断迭代完成的依据是done是否为true==
 
-### 委派生成器
+### 委派生成器 delegating(委派、授权) generator
 
 ```javascript
 function *createNumsIterator() {
@@ -457,11 +480,12 @@ function *createIterator(twice) {
 }
 
 function *createCombineIterator() {
-    const result = yield *createNumsIterator();
+    const result = yield *createNumsIterator(); // createNumsIterator 返回的值，可以传递到下一个生成器
     yield *createIterator(result);
 }
 
 const iterator = createCombineIterator();
+// value: 3 为什么没有被产出？
 console.log(iterator.next()); // { value: 1, done: false }
 console.log(iterator.next()); // { value: 2, done: false }
 console.log(iterator.next()); // { value: 'repeat', done: false }
@@ -470,7 +494,7 @@ console.log(iterator.next()); // { value: 'repeat', done: false }
 console.log(iterator.next()); // { value: undefined, done: true }
 ```
 
-==注意：当调用next fn时，value: 3从未输出过。它只存在于createCombineIterator中==
+==注意：当调用next fn时，value: 3从未输出过。它只存在于createCombineIterator中[???]==
 
 ==`yield * 'hello'`会返回string默认的迭代器==
 
@@ -557,3 +581,9 @@ asyncRun(function *() {
 ```
 
 **虽然判断异步操作的方式存在很多缺陷，但最重要的是理解背后的原理。`promise`提供了更强大的方式调度异步任务**
+
+
+## iterator & async
+
+> An iterator does not work with any asynchronous data sources.
+> We can make value async but not status
