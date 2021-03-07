@@ -49,3 +49,5 @@ str.includes(searchStr, [position])
 str.startsWith(searchStr, [position])
 str.endsWith(searchStr, [length]) // 从0到length-1的位置查找 default: str.length
 ```
+
+

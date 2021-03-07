@@ -70,6 +70,19 @@ mixArgs("a");
 
 参数的默认值可以是一个表达式，比如方法的调用(传递了值的话，方法不会调用，只有未传递对应的参数值时，方法才会调用)。
 
+```javascript
+function getValue() {
+    return 5;
+}
+
+function add(first, second = getValue()) {
+    return first + second;
+}
+
+console.log(add(1, 1));     // 2
+console.log(add(1)); // getValue execute
+```
+
 位置靠前的参数可以作为位置相对靠后参数的默认值。反之不可，会出现暂时性死区TDZ。
 
 ```javascript
@@ -84,6 +97,15 @@ function add(first = second, second) {
     return first + second;
 }
 add(1, 1);
+add(undefined, 1); // error
+
+// JavaScript representation of call to add(1, 1)
+let first = 1;
+let second = 1;
+
+// JavaScript representation of call to add(undefined, 1)
+let first = second;
+let second = 1;
 ```
 
 ## 其余参数  rest params

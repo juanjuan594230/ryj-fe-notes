@@ -3,8 +3,6 @@
 ES6新增的一种基本数据类型
 string\number\boolean\null\undefined\symbol
 
-
-
 ## 创建symbol类型
 
 symbol类型创建没有字面量语法，必须使用`Symbol` fn进行创建。

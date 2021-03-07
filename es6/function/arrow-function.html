@@ -8,19 +8,19 @@
 </head>
 <body>
     <script type="text/javascript">
-        // var pageHandler = {
-        //     id: '123456',
-        //     init: function() {
-        //         document.addEventListener("click", function(event) {
-        //             console.log(this); // document
-        //             this.doSomething(event.type);     // error
-        //         }, false);
-        //     },
-        //     doSomething: function(type) {
-        //         console.log("Handling " + type  + " for " + this.id);
-        //     }
-        // }
-        // pageHandler.init();
+        var pageHandler = {
+            id: '123456',
+            init: function() {
+                document.addEventListener("click", function(event) {
+                    console.log(this); // document
+                    this.doSomething(event.type);     // error
+                }, false);
+            },
+            doSomething: function(type) {
+                console.log("Handling " + type  + " for " + this.id);
+            }
+        }
+        pageHandler.init();
 
 
         // bind this
@@ -51,7 +51,12 @@
         //         console.log("Handling " + type  + " for " + this.id);
         //     }
         // }
-        // pageHandler.init();
+        // // init de this 由调用的时候决定
+        // // pageHandler.init() this === pageHandler so arrow fn this === pageHandler
+        // pageHandler.init(); // pageHandler
+        // const _init = pageHandler.init;
+        // // _init() this === window so arrow fn this === window
+        // _init(); // window
     </script>
 </body>
 </html>
