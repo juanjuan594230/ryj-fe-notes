@@ -66,6 +66,8 @@ console.log(iterator.next()); // { value: undefined, done: true}
 
 `generator`是一个fn，返回iterator对象。==可以在中途停止执行，然后从停止的地方继续执行。==
 
+**返回一个generator object，包含next\throw\return等方法，可以看成一个iterator对象**
+
 其他常见的定义：
 
 生成器是一类特殊的函数，简化编写迭代器的任务。
@@ -587,3 +589,10 @@ asyncRun(function *() {
 
 > An iterator does not work with any asynchronous data sources.
 > We can make value async but not status
+
+## async iterators
+
+Symbol.asyncIterator
+for-wait-of 遍历异步可迭代对象
+
+![](../async-await/images/async-iterators.png)

@@ -66,19 +66,35 @@ const process = require('process');
 //     console.log('data', data); // 43
 // });
 
-let p1 = new Promise(function(resolve, reject) {
-    resolve(42);
-});
+// let p1 = new Promise(function(resolve, reject) {
+//     resolve(42);
+// });
 
-let p2 = new Promise(function(resolve, reject) {
-    resolve(43);
-});
+// let p2 = new Promise(function(resolve, reject) {
+//     resolve(43);
+// });
 
-let p3 = new Promise(function(resolve, reject) {
-    resolve(44);
-});
+// let p3 = new Promise(function(resolve, reject) {
+//     resolve(44);
+// });
 
-let p4 = Promise.all([p1, p2, p3]);
-p4.then((value) => {
-    console.log('value', value); // [42, 43, 44]
-});
+// let p4 = Promise.all([p1, p2, p3]);
+// p4.then((value) => {
+//     console.log('value', value); // [42, 43, 44]
+// });
+
+function lazy() {
+    return new Promise((resolve, reject) => {
+        setTimeout(reject(new Error('hahaha')), 1000);
+    })
+}
+
+lazy()
+    .then(null, (err) => {
+        console.log(err.message); // hahaha
+        console.log('AAA'); // AAA
+    })
+    .catch((err) => {
+        console.log(err.message); // 这里没有执行
+        console.log('BBB');
+    })
