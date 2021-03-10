@@ -50,3 +50,34 @@ async function foo() {
 A promise which will be resolved with the value return by the async function;
 or rejected with an exception throw from, or uncaught within, the async function.
 
+
+# Symbol
+
+## REASON
+
+### Add new core-features with backward compatibility
+
+添加向后兼容的核心功能
+
+```javascript
+const myObject = {
+  firstName: 'ren',
+  lastName: 'yujuan'
+}
+
+console.log(Object.keys(myObject)); // [firstName, lastName]
+myObject.age = 22;
+console.log(Object.keys(myObject)); // [firstName, lastName, age]
+```
+
+???how show just[firstName, lastName] — and not [firstName, lastName, newProperty] . How to do that?
+
+**the answer is Symbol;**
+
+> If you add newProperty as a symbol, then Object.keys(myObject) would ignore this (as it doesn’t know about it), and still return [firstName, lastName] !
+
+??? 这样有什么场景吗???
+
+### 避免名称冲突
+
+### Enable hooks to core methods via “Well-known” Symbols???
