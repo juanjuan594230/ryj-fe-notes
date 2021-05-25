@@ -21,23 +21,30 @@
 // proxy.second = '1'; // throw error
 
 // get trap
-// const target = {
-//     name: 'renyujuan',
-//     sex: 'women'
-// };
-// const proxy = new Proxy(target, {
-//     get(targetObj, key, receiver) {
-//         // if (!targetObj.hasOwnProperty(key)) {
-//         //     throw new Error('该对象上不存在此属性');
-//         // }
-//         if (!(key in receiver)) {
-//             throw new Error('该对象上不存在此属性');
-//         }
-//         return Reflect.get(targetObj, key, receiver);
-//     }
-// });
+const target = {
+    name: 'renyujuan',
+    sex: 'women',
+    mom: {
+        name: 'hao'
+    }
+};
+const proxy = new Proxy(target, {
+    get(targetObj, key, receiver) {
+        // if (!targetObj.hasOwnProperty(key)) {
+        //     throw new Error('该对象上不存在此属性');
+        // }
+        // console.log('targetObj', targetObj);
+        console.log('key', key);
+        // console.log('receiver', receiver);
+        if (!(key in receiver)) {
+            throw new Error('该对象上不存在此属性');
+        }
+        return Reflect.get(targetObj, key, receiver);
+    }
+});
 // console.log(proxy.name);
 // console.log(proxy.age);
+console.log(proxy.mom.name);
 
 
 // has trap

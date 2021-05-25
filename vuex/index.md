@@ -14,6 +14,8 @@
 
 ![image](http://note.youdao.com/yws/public/resource/3066d437a032b6be56aa7189aa628b4d/xmlnote/0AD6964C62734340A9A92329B7CF4FE9/19591)
 
+![image](./images/vuex-complete-flow.jpeg)
+
 ### some property
 
 `this._actions` 保存了action type与handler数组的对象
@@ -59,14 +61,27 @@ this._modules = {
 
 `installModule(this, state, [], this._modules.root)`
 
+![image](./images/module_install.png)
+
+完成这些构建
+`store.state`
+`module.context`
+`store._mutations`
+`store._actions`
+`store._wrappedGetters`
+
 - store._modulesNamespaceMap存储namespace: module键值对
+
+- 模块下的state，通过命名空间挂载到store.state对应的节点上。
 
 - 生成module.context = makeLocalContext(store, namespace, path)
 
-- 注册mutations ->  store._mutations
+- 注册mutations ->  store._mutations  eg: store._mutations.moduleName/mutationsName
 
-- 注册actions -> store._actions
+- 注册actions -> store._actions eg: store._actions.moduleName/actionName 调用的时候，传递了local参数，所以可以获取到local.commit\dispatch等参数。 
 
 - 注册getters -> store._wrappedGetters
 
 - 递归调用installModule注册子module
+
+### state 修改方法 _withCommit
